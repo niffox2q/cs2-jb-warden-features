@@ -5,7 +5,7 @@
 
 jb_warden_features g_jb_warden_features;
 PLUGIN_EXPOSE(jb_warden_features, g_jb_warden_features);
-
+#define MAX_PLAYERS 64
 
 // SYSTEM API`s
 IVEngineServer2* engine = nullptr;
@@ -15,6 +15,7 @@ CEntitySystem* g_pEntitySystem = nullptr;
 
 // API
 IUtilsApi* utils;
+IPlayersApi* players_api;
 IJailbreakApi* jailbreak_api;
 
 
@@ -32,12 +33,16 @@ std::string sSoundLocal;
 
 
 void PlaySlotSound(int iSlot, const char* path){
-    engine->ClientCommand(iSlot, "play %s", path);
+    auto pController = CCSPlayerController::FromSlot(iSlot);
+    if (!pController) return;
+    players_api->EmitSound(iSlot,pController->entindex(),path,1,3.0);
 }
 
 void PlaySoundAll(const char* path){
-    for(int i = 0; i < 64; i++){
-        engine->ClientCommand(i, "play %s", path);
+    for(int i = 0; i < MAX_PLAYERS;i++){
+        auto pController = CCSPlayerController::FromSlot(i);
+        if (!pController) continue;
+        players_api->EmitSound(i,pController->entindex(),path,1,3.0);
     }
 }
 
@@ -134,6 +139,13 @@ void jb_warden_features::AllPluginsLoaded() {
     jailbreak_api = (IJailbreakApi*)g_SMAPI->MetaFactory(JAILBREAK_INTERFACE, &ret, nullptr);
     if (ret == META_IFACE_FAILED) {
         META_CONPRINTF("%s | Missing Jailbreak Core plugin.\n", g_PLAPI->GetLogTag());
+        engine->ServerCommand(("meta unload " + std::to_string(g_PLID)).c_str());
+        return;
+    }
+
+    players_api = (IPlayersApi*)g_SMAPI->MetaFactory(PLAYERS_INTERFACE, &ret, nullptr);
+    if (ret == META_IFACE_FAILED) {
+        META_CONPRINTF("%s | Missing UTILS plugin.",g_PLAPI->GetLogTag());
         engine->ServerCommand(("meta unload " + std::to_string(g_PLID)).c_str());
         return;
     }
