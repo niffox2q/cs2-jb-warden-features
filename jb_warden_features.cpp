@@ -29,6 +29,7 @@ int iBlue;
 float flSpeed;
 std::string sSoundAll;
 std::string sSoundLocal;
+std::string sClantag;
 
 
 
@@ -66,11 +67,28 @@ void LoadConfig() {
     sSoundAll = config->GetString("SoundAll", "");
     sSoundLocal = config->GetString("SoundLocal", "");
 
+    sClantag = config->GetString("Clantag","[КМД]");
+
     delete config;
 }
 
 CGameEntitySystem* GameEntitySystem() {
     return utils ? utils->GetCGameEntitySystem() : nullptr;
+}
+
+void UpdateScoreboardUI() {
+    if (!utils) return;
+    
+    IGameEventManager2* pEventMgr = utils->GetGameEventManager();
+    if (!pEventMgr) return;
+
+    IGameEvent* pEvent = pEventMgr->CreateEvent("nextlevel_changed", false);
+    if (pEvent) {
+        pEvent->SetString("nextlevel", "unknown");
+        pEvent->SetString("skirmishmode", "default");
+        
+        pEventMgr->FireEvent(pEvent, false);
+    }
 }
 
 void StartupServer() {
@@ -91,6 +109,10 @@ void StartupServer() {
         pPawn->m_ArmorValue = iArmor;
         pPawn->m_flVelocityModifier = flSpeed;
 
+        pController->m_szClan() = CUtlSymbolLarge(sClantag.c_str());
+        utils->SetStateChanged(pController, "CCSPlayerController", "m_szClan");
+        UpdateScoreboardUI();
+
         Color clr(iRed, iGreen, iBlue, 255);
         pPawn->m_clrRender.Set(clr);
 
@@ -100,12 +122,25 @@ void StartupServer() {
         utils->SetStateChanged(pPawn, "CCSPlayerPawn", "m_flVelocityModifier");
         utils->SetStateChanged(pPawn, "CBaseModelEntity", "m_clrRender");
 
+        auto itemservice = pPawn->m_pItemServices.Get();
+        if (!itemservice) return;
+        itemservice->m_bHasHelmet = true;
+        utils->SetStateChanged(pPawn,"CCSPlayer_ItemServices","m_bHasHelmet");
+
         if (!sSoundAll.empty()) {
             PlaySoundAll(sSoundAll.c_str());
         }
         if (!sSoundLocal.empty()) {
             PlaySlotSound(iSlot, sSoundLocal.c_str());
         }
+    });
+
+    jailbreak_api->OnWardenDieListener(g_PLID,[](int iSlot){
+        auto pController = CCSPlayerController::FromSlot(iSlot);
+        if (!pController) return;
+        pController->m_szClan() = CUtlSymbolLarge("\0");
+        utils->SetStateChanged(pController, "CCSPlayerController", "m_szClan");
+        UpdateScoreboardUI();
     });
 }
 
@@ -167,4 +202,4 @@ const char* jb_warden_features::GetLicense() { return "Private"; }
 const char* jb_warden_features::GetLogTag() { return "[JB] Warden Features"; }
 const char* jb_warden_features::GetName() { return "[JB] Warden Features"; }
 const char* jb_warden_features::GetURL() { return "https://t.me/niffox_2q"; }
-const char* jb_warden_features::GetVersion() { return "1.0.0"; }
+const char* jb_warden_features::GetVersion() { return "1.0.1"; }
