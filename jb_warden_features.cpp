@@ -228,4 +228,4 @@ const char* jb_warden_features::GetLicense() { return "Private"; }
 const char* jb_warden_features::GetLogTag() { return "[JB] Warden Features"; }
 const char* jb_warden_features::GetName() { return "[JB] Warden Features"; }
 const char* jb_warden_features::GetURL() { return "https://t.me/niffox_2q"; }
-const char* jb_warden_features::GetVersion() { return "1.0.1"; }
+const char* jb_warden_features::GetVersion() { return "1.0.2"; }
