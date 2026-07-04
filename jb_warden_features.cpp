@@ -76,37 +76,6 @@ CGameEntitySystem* GameEntitySystem() {
     return utils ? utils->GetCGameEntitySystem() : nullptr;
 }
 
-void UpdateScoreboardUI() {
-    if (!utils) return;
-    
-    IGameEventManager2* pEventMgr = utils->GetGameEventManager();
-    if (!pEventMgr) return;
-
-    IGameEvent* pEvent = pEventMgr->CreateEvent("nextlevel_changed", false);
-    if (pEvent) {
-        pEvent->SetString("nextlevel", "unknown");
-        pEvent->SetString("skirmishmode", "default");
-        
-        pEventMgr->FireEvent(pEvent, false);
-    }
-}
-
-void ClearClangtag(CCSPlayerController* pc) {
-    pc->m_szClan() = "\0";
-    utils->SetStateChanged(pc, "CCSPlayerController", "m_szClan");
-    UpdateScoreboardUI();
-}
-
-void ClearAllTags(){
-    for (int i = 0; i < MAX_PLAYERS;i++) {
-        auto pc = CCSPlayerController::FromSlot(i);
-        if (!pc) continue;
-        pc->m_szClan() = "\0";
-        utils->SetStateChanged(pc, "CCSPlayerController", "m_szClan");
-    }
-    UpdateScoreboardUI();
-}
-
 void StartupServer() {
     g_pGameEntitySystem = GameEntitySystem();
     g_pEntitySystem = utils->GetCEntitySystem();
@@ -124,10 +93,6 @@ void StartupServer() {
         pPawn->m_iMaxHealth = iHealth;
         pPawn->m_ArmorValue = iArmor;
         pPawn->m_flVelocityModifier = flSpeed;
-
-        pController->m_szClan() = CUtlSymbolLarge(sClantag.c_str());
-        utils->SetStateChanged(pController, "CCSPlayerController", "m_szClan");
-        UpdateScoreboardUI();
 
         Color clr(iRed, iGreen, iBlue, 255);
         pPawn->m_clrRender.Set(clr);
@@ -151,23 +116,6 @@ void StartupServer() {
         }
     });
 
-    jailbreak_api->OnWardenDieListener(g_PLID,[](int iSlot){
-        auto pController = CCSPlayerController::FromSlot(iSlot);
-        if (!pController) return;
-        pController->m_szClan() = CUtlSymbolLarge("\0");
-        utils->SetStateChanged(pController, "CCSPlayerController", "m_szClan");
-        UpdateScoreboardUI();
-    });
-
-    utils->HookEvent(g_PLID,"player_death",[](const char* szName, IGameEvent* pEvent, bool bDontBroadcast){
-        int iSlot = pEvent->GetInt("userid");
-        auto pc = CCSPlayerController::FromSlot(iSlot);
-        if (!pc) return;
-        ClearClangtag(pc);
-    });
-    utils->HookEvent(g_PLID,"round_end",[](const char* szName, IGameEvent* pEvent, bool bDontBroadcast){
-        ClearAllTags();
-    });
 }
 
 bool jb_warden_features::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool late) {
@@ -228,4 +176,4 @@ const char* jb_warden_features::GetLicense() { return "Private"; }
 const char* jb_warden_features::GetLogTag() { return "[JB] Warden Features"; }
 const char* jb_warden_features::GetName() { return "[JB] Warden Features"; }
 const char* jb_warden_features::GetURL() { return "https://t.me/niffox_2q"; }
-const char* jb_warden_features::GetVersion() { return "1.0.2"; }
+const char* jb_warden_features::GetVersion() { return "1.0.4"; }
