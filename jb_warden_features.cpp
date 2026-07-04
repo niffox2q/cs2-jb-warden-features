@@ -92,7 +92,7 @@ void UpdateScoreboardUI() {
 }
 
 void ClearClangtag(CCSPlayerController* pc) {
-    pc->m_szClan() = CUtlSymbolLarge("\0");
+    pc->m_szClan() = "\0";
     utils->SetStateChanged(pc, "CCSPlayerController", "m_szClan");
     UpdateScoreboardUI();
 }
@@ -101,7 +101,7 @@ void ClearAllTags(){
     for (int i = 0; i < MAX_PLAYERS;i++) {
         auto pc = CCSPlayerController::FromSlot(i);
         if (!pc) continue;
-        pc->m_szClan() = CUtlSymbolLarge("\0");
+        pc->m_szClan() = "\0";
         utils->SetStateChanged(pc, "CCSPlayerController", "m_szClan");
     }
     UpdateScoreboardUI();
