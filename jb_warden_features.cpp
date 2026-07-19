@@ -32,6 +32,10 @@ std::string sSoundLocal;
 std::string sClantag;
 
 
+int iGuardHP;
+int iGuardArmor;
+float flGuardSpeed;
+
 
 void PlaySlotSound(int iSlot, const char* path){
     auto pController = CCSPlayerController::FromSlot(iSlot);
@@ -67,9 +71,21 @@ void LoadConfig() {
     sSoundAll = config->GetString("SoundAll", "");
     sSoundLocal = config->GetString("SoundLocal", "");
 
-    sClantag = config->GetString("Clantag","[КМД]");
 
     delete config;
+
+    KeyValues* config2 = new KeyValues("Config");
+    const char* path2 = "addons/configs/Jailbreak/core.ini";
+    if (!config->LoadFromFile(g_pFullFileSystem, path)) {
+        utils->ErrorLog("%s Failed to load: %s", g_PLAPI->GetLogTag(), path2);
+        delete config2;
+        return;
+    }
+
+    iGuardHP = config2->GetInt("GuardHP",100);
+    iGuardArmor = config2->GetInt("GuardArmor",100);
+
+    delete config2;
 }
 
 CGameEntitySystem* GameEntitySystem() {
@@ -114,6 +130,29 @@ void StartupServer() {
         if (!sSoundLocal.empty()) {
             PlaySlotSound(iSlot, sSoundLocal.c_str());
         }
+    });
+
+    jailbreak_api->OnWardenClearListener(g_PLID,[](int iSlot){
+        if (iSlot < 0 || iSlot >= MAX_PLAYERS) return;
+        auto pController = CCSPlayerController::FromSlot(iSlot);
+        if (!pController) return;
+        auto pPawn = pController->GetPlayerPawn();
+        if (!pPawn || !pPawn->IsAlive()) return;
+
+        pPawn->m_iHealth = pPawn->m_iHealth < iGuardHP ? pPawn->m_iHealth : iGuardHP ;
+        pPawn->m_iMaxHealth = iGuardHP;
+        pPawn->m_ArmorValue = iGuardArmor;
+
+        pPawn->m_flVelocityModifier = 1.0f;
+
+        pPawn->m_clrRender = {255,255,255,255};
+
+        utils->SetStateChanged(pPawn, "CBaseEntity", "m_iHealth");
+        utils->SetStateChanged(pPawn, "CBaseEntity", "m_iMaxHealth");
+        utils->SetStateChanged(pPawn, "CCSPlayerPawn", "m_ArmorValue");
+        utils->SetStateChanged(pPawn, "CBaseModelEntity", "m_clrRender");
+
+        utils->SetStateChanged(pPawn, "CCSPlayerPawn", "m_flVelocityModifier");
     });
 
 }
@@ -176,4 +215,4 @@ const char* jb_warden_features::GetLicense() { return "Private"; }
 const char* jb_warden_features::GetLogTag() { return "[JB] Warden Features"; }
 const char* jb_warden_features::GetName() { return "[JB] Warden Features"; }
 const char* jb_warden_features::GetURL() { return "https://t.me/niffox_2q"; }
-const char* jb_warden_features::GetVersion() { return "1.0.4"; }
+const char* jb_warden_features::GetVersion() { return "1.0.5"; }
